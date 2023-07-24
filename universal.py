@@ -22,6 +22,11 @@ class Human:
         self.alive = True
         self.inventory = []
 
+    def reset_stats(self):
+        self.positive_stats = {"health":100, "happiness":100, "cleanliness":100, "energy":100}
+        self.negative_stats = {"hunger":0, "thirst":0,"boredom":0}
+        self.age = 0
+
     def set_health(self, value = 0):
         for stat_key,stat_value in self.negative_stats.items():
             if stat_value > 80:
@@ -92,6 +97,7 @@ class Human:
                 print("\033[31m"+stat_key+" "+str(round(stat_value))+"\033[0m")
             else:
                 print(stat_key+" "+str(round(stat_value)))
+
         print("Age:"+ str(math.floor(self.age)))
 
     def use_item(self,attribute):
@@ -121,7 +127,7 @@ class Item_creator:
         self.attribute = input("enter attribute: ")
         self.value = int(input("enter value: "))
         self.add_item_to_inventory()
-
+        
     def add_item_to_inventory(self):
         man.inventory.append([self.name,self.attribute,self.value])  
         print (man.inventory) 
@@ -136,13 +142,26 @@ def loop():
         os.system('cls')
         man.set_stats()
         man.show_stats()
+        print("exp: "+ str(game.player_experience))
         man.check_death()
         sleep(0.5)
+    
+    man.reset_stats()
+    play_or_create = input("[P]lay again, [C]reate item, [E]xit ")
+    
+    if play_or_create.lower() == "p":
+        man.alive = True
+    elif play_or_create.lower() == "c":
+        item_creator.create_item()
+    elif play_or_create.lower() == "e" :
+        exit()
+    loop()  
 
 
-item_creator.create_item()
+print("Welcome to the game")
+input("press enter to begin")
+
 loop()
-
 
 print("")
 input("press enter to exit")
