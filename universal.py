@@ -36,18 +36,22 @@ class Human:
         for attribute in self.positive_stats:
             for item in self.inventory:
                 if item[1] == attribute and self.positive_stats[attribute] < 30:
-                    self.positive_stats[attribute] += item[2]
-                    print(f"{self.name} used a {item[0]} to increase {item[1]} by {item[2]}")
-                    self.inventory.remove(item)
-                    break
+                    use_item = input(f"Use {item[0]}? [Y]es or [N]o ").lower()
+                    if use_item == "y":
+                        self.positive_stats[attribute] += item[2]
+                        print(f"{self.name} used a {item[0]} to increase {item[1]} by {item[2]}")
+                        self.inventory.remove(item)
+                        break
 
         for attribute in self.negative_stats:
             for item in self.inventory:
                 if item[1] == attribute and self.negative_stats[attribute] > 70:
-                    self.negative_stats[attribute] -= item[2]
-                    print(f"{self.name} used a {item[0]} to decrease {item[1]} by {item[2]}")
-                    self.inventory.remove(item)
-                    break
+                    use_item = input(f"Use {item[0]}? [Y]es or [N]o ").lower()
+                    if use_item == "y":
+                        self.negative_stats[attribute] -= item[2]
+                        print(f"{self.name} used a {item[0]} to decrease {item[1]} by {item[2]}")
+                        self.inventory.remove(item)
+                        break
 
 
     def show_stats(self):
@@ -72,23 +76,67 @@ class Human:
             game.add_experience(math.floor(self.age))
             self.show_stats()
             
-
-
 class ItemCreator:
     def __init__(self):
         self.name = "item"
         self.attribute = "attribute"
-        self.value = 0
+        self.strength = 0
         self.condition = "condition"
 
+    def clear_screen(self):
+        os.system('cls' if os.name == 'nt' else 'clear')
+
     def create_item(self):
-        self.name = input("enter item name: ")
-        self.attribute = input("enter attribute: ")
-        self.value = int(input("enter value: "))
+        self.clear_screen()
+
+        self.name = input("Enter item name: ")
+        
+        # Attribute selector menu
+        print("Select attribute:")
+        print("[He]alth, [Ha]ppiness, [C]leanliness, [E]nergy, [H]unger, [T]hirst, [B]oredom")
+        attribute_input = input("Enter attribute letter: ").strip().lower()
+
+        attribute_map = {
+            'he': 'health',
+            'ha': 'happiness',
+            'c': 'cleanliness',
+            'e': 'energy',
+            'h': 'hunger',
+            't': 'thirst',
+            'b': 'boredom'
+        }
+
+        if attribute_input not in attribute_map:
+            print("Invalid attribute selection. Please try again.")
+            self.create_item()
+
+        self.attribute = attribute_map[attribute_input]
+
+        print("Enter strength (type 'M' for max or 'H' for half):")
+        strength_input = input("Enter strength: ").strip().lower()
+
+        if strength_input == 'm':
+            self.strength = game.player_experience 
+        elif strength_input == 'h':
+            self.strength = game.player_experience / 2
+        else:
+            try:
+                self.strength = int(strength_input)
+            except ValueError:
+                print("Invalid strength input. Please try again.")
+                self.create_item()
+
+        required_experience = self.strength
+        
+        if required_experience > game.player_experience:
+            print("Not enough experience to create this item.")
+            return
+
+        game.player_experience -= required_experience
         self.add_item_to_inventory()
 
     def add_item_to_inventory(self):
-        man.inventory.append([self.name, self.attribute, self.value])
+        man.inventory.append([self.name, self.attribute, self.strength])
         print(man.inventory)
 
 def game_loop():
@@ -104,7 +152,7 @@ def game_loop():
         man.update_stat("hunger", 5, False)
 
         # Update Thirst
-        man.update_stat("thirst", 10, False)
+        man.update_stat("thirst", 8, False)
 
         # Update Energy
         man.update_stat("energy", -4)
@@ -119,6 +167,8 @@ def game_loop():
 
         # Update Cleanliness
         man.update_stat("cleanliness", -3)
+
+        game.player_experience += 1
 
         # Update Age
         man.age += 0.1
