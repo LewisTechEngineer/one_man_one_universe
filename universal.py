@@ -18,9 +18,13 @@ SLEEP_TIME = 0.5
 class Game:
     def __init__(self):
         self.player_experience = 0
+        self.saved_items = []
 
     def add_experience(self, value):
         self.player_experience += value
+
+    def save_item(self, name, attribute, strength):
+        self.saved_items.append((name, attribute, strength))
 
 class Human:
     def __init__(self, game):
@@ -88,10 +92,26 @@ class ItemCreator:
     def clear_screen(self):
         os.system('cls' if os.name == 'nt' else 'clear')
 
+    def load_item(self):
+        print("Select item to load:")
+        for i, item in enumerate(self.game.saved_items):
+            print(f"[{i}] {item[0]}")
+        item_index = input("Enter item number: ").strip().lower()
+        while not item_index.isdigit() or int(item_index) >= len(self.game.saved_items):
+            print("Invalid item selection. Please try again.")
+            item_index = input("Enter item number: ").strip().lower()
+        self.name, self.attribute, self.strength = self.game.saved_items[int(item_index)]
+        # add item to player inventory
+
     def create_item(self):
         self.clear_screen()
         print("Current experience:", self.game.player_experience)
         print("Cost to create Item: 100 Exp")
+        if len(self.game.saved_items) > 0:
+            load_item = input("Load item? [Y]es or [N]o ").lower()
+            if load_item == "y":
+                self.load_item()
+        
         self.name = input("Enter item name: ")
 
         # Attribute selector menu
@@ -121,9 +141,15 @@ class ItemCreator:
         strength_input = input("Enter strength: ").strip().lower()
 
         if strength_input == 'm':
-            self.strength = self.game.player_experience - ITEM_COST
+            if self.game.player_experience - ITEM_COST < 70:
+                self.strength = self.game.player_experience - ITEM_COST
+            else:
+                self.strength = 70
         elif strength_input == 'h':
-            self.strength = (self.game.player_experience - ITEM_COST) // 2
+            if self.game.player_experience - ITEM_COST < 35:
+                self.strength = (self.game.player_experience - ITEM_COST) // 2
+            else:
+                self.strength = 35
         else:
             while True:
                 try:
@@ -141,80 +167,47 @@ class ItemCreator:
 
         self.game.player_experience -= required_experience
         self.add_item_to_inventory()
+        if self.game.player_experience >= 10:
+            save_item = input("Save item? [Y]es or [N]o (10 exp) ").lower()
+            if save_item == "y":
+                self.game.player_experience -= 10
+                self.game.save_item(self                .name, self.attribute, self.strength)
 
     def add_item_to_inventory(self):
-        self.man.inventory.append([self.name, self.attribute, self.strength])
-        print(self.man.inventory)
+        self.man.inventory.append((self.name, self.attribute, self.strength))
+        print(f"Item {self.name} created and added to inventory!")
 
-class GameController:
-    def __init__(self):
-        self.game = Game()
-        self.man = Human(self.game)
-        self.item_creator = ItemCreator(self.game, self.man)
+def game_loop():
+    game = Game()
+    man = Human(game)
+    item_creator = ItemCreator(game, man)
+    
+    while man.alive:
+        man.show_stats()
+        print("Options:")
+        print("[1] Create Item")
+        print("[2] Pass Turn")
+        option = input("Choose an option: ").strip()
 
-    def run(self):
-        print("Welcome to the game")
-        input("Press Enter to begin")
-        self.game_loop()
-        input("Press Enter to exit")
-
-    def game_loop(self):
-        while self.man.alive:
-            os.system('cls')
-
-            # Update Health
-            health_decrease = HEALTH_DECREASE + sum(0.2 for stat, value in self.man.negative_stats.items() if value > 50)
-            health_decrease += sum(0.2 for stat, value in self.man.positive_stats.items() if stat != "health" and value < 30)
-            self.man.update_stat("health", -health_decrease)
-
-            # Update Hunger
-            self.man.update_stat("hunger", HUNGER_INCREASE, False)
-
-            # Update Thirst
-            self.man.update_stat("thirst", THIRST_INCREASE, False)
-
-            # Update Energy
-            self.man.update_stat("energy", -ENERGY_DECREASE)
-
-            # Update Boredom
-            self.man.update_stat("boredom", BOREDOM_INCREASE, False)
-
-            # Update Happiness
-            happiness_decrease = HAPPINESS_DECREASE + sum(0.1 for stat, value in self.man.negative_stats.items() if value > 50)
-            happiness_decrease += 0.1 if self.man.positive_stats["cleanliness"] < 40 else 0
-            self.man.update_stat("happiness", -happiness_decrease)
-
-            # Update Cleanliness
-            self.man.update_stat("cleanliness", -CLEANLINESS_DECREASE)
-
-            self.game.player_experience += EXPERIENCE_MULTIPLIER * self.man.age * 10
-
-            # Update Age
-            self.man.age += AGE_INCREASE
-            self.man.show_stats()
-            self.man.use_items()
-            self.man.check_death()
+        if option == "1":
+            item_creator.create_item()
+        elif option == "2":
+            man.use_items()
+            man.update_stat("health", -HEALTH_DECREASE)
+            man.update_stat("hunger", HUNGER_INCREASE, positive=False)
+            man.update_stat("thirst", THIRST_INCREASE, positive=False)
+            man.update_stat("energy", -ENERGY_DECREASE)
+            man.update_stat("boredom", BOREDOM_INCREASE, positive=False)
+            man.update_stat("happiness", -HAPPINESS_DECREASE)
+            man.update_stat("cleanliness", -CLEANLINESS_DECREASE)
+            man.age += AGE_INCREASE
             sleep(SLEEP_TIME)
-        self.post_game_options()
+            os.system('cls' if os.name == 'nt' else 'clear')
+        else:
+            print("Invalid option! Please try again.")
 
-    def post_game_options(self):
-        self.man.reset_stats()
-
-        option = input("[P]lay again, [C]reate item (cost 100 xp), [E]xit ").lower()
-
-        while option not in ["p", "c", "e"]:
-            print("Invalid option. Please try again.")
-            option = input("[P]lay again, [C]reate item (cost 100 xp), [E]xit ").lower()
-
-        if option == "p":
-            self.man.alive = True
-            self.game_loop()
-        elif option == "c":
-            self.item_creator.create_item()
-            self.game_loop()
-        elif option == "e":
-            exit()
+        man.check_death()
 
 if __name__ == "__main__":
-    game_controller = GameController()
-    game_controller.run()
+    game_loop()
+
