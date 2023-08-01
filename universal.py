@@ -13,7 +13,7 @@ CLEANLINESS_DECREASE = 3
 ITEM_COST = 100
 EXPERIENCE_MULTIPLIER = 1
 AGE_INCREASE = 0.1
-SLEEP_TIME = 0.5
+SLEEP_TIME = 0.1
 
 class Game:
     def __init__(self):
@@ -43,6 +43,7 @@ class Human:
         stat_dict = self.positive_stats if positive else self.negative_stats
         stat_dict[stat] += value * self.age
         stat_dict[stat] = max(min(stat_dict[stat], 100), 0)
+        self.game.add_experience(math.floor(1 * EXPERIENCE_MULTIPLIER * self.age))
 
     def use_items(self):
         for attribute in list(self.positive_stats.keys()) + list(self.negative_stats.keys()):
@@ -182,16 +183,16 @@ def game_loop():
     man = Human(game)
     item_creator = ItemCreator(game, man)
     
-    while man.alive:
-        man.show_stats()
-        print("Options:")
-        print("[1] Create Item")
-        print("[2] Pass Turn")
-        option = input("Choose an option: ").strip()
+    
+    print("Options:")
+    print("[1] Create Item")
+    print("[2] Create Life")
+    option = input("Choose an option: ").strip()
 
-        if option == "1":
-            item_creator.create_item()
-        elif option == "2":
+    if option == "1":
+        item_creator.create_item()
+    elif option == "2":
+        while man.alive:
             man.use_items()
             man.update_stat("health", -HEALTH_DECREASE)
             man.update_stat("hunger", HUNGER_INCREASE, positive=False)
@@ -201,12 +202,18 @@ def game_loop():
             man.update_stat("happiness", -HAPPINESS_DECREASE)
             man.update_stat("cleanliness", -CLEANLINESS_DECREASE)
             man.age += AGE_INCREASE
+            man.show_stats()
             sleep(SLEEP_TIME)
             os.system('cls' if os.name == 'nt' else 'clear')
-        else:
-            print("Invalid option! Please try again.")
+            man.check_death()
+    else:
+        print("Invalid option! Please try again.")
+    
+    print("Game Over!")
+    print(f"Final experience: {game.player_experience}")
+    game_loop()
 
-        man.check_death()
+    
 
 if __name__ == "__main__":
     game_loop()
